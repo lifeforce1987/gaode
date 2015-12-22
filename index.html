@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="initial-scale=1.0, user-scalable=no, width=device-width">
-    <title>高德地图展示</title>
+    <title>高德云地图展示</title>
     <link rel="stylesheet" href="http://cache.amap.com/lbs/static/main1119.css"/>
 	<style type="text/css">
         #panel {
@@ -46,7 +46,7 @@
 	<input type="button" class="button" id="yunLayerBtn" value="打开/关闭云图"/>
 	-->
     <input type="button" class="button" value="距离量测" onClick="javascript:startRuler2()"/>
-	<input type="button" class="button" value="搜索" data-toggle="modal" data-target="#searchModal"/>
+	<input type="button" class="button" value="搜  索" data-toggle="modal" data-target="#searchModal"/>
 </div>
 <!-- Modal -->
 <div class="modal fade" id="searchModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
@@ -57,8 +57,8 @@
       </div>
 	  <div style="width:300px;">
       <div class="input-group">
-  <span class="input-group-addon" id="basic-addon1">关键字：</span>
-  <input type="text" id="keywords" name="keyworks" class="form-control" placeholder="关键字" aria-describedby="basic-addon1">
+  <span class="input-group-addon" id="basic-addon1">地址：</span>
+  <input type="text" id="keywords" name="keyworks" class="form-control" placeholder="地址" aria-describedby="basic-addon1">
   </div>
   <div class="input-group">
    <span class="input-group-addon" id="basic-addon2">数据库：</span>
@@ -148,13 +148,14 @@
    }
   
   function searchLayer(){
-	var keywords = $('#keywords').val();
+	var address = $('#keywords').val();
+	var filter = "_address:"+address;
 	var dbid = $('#dbid').children('option:selected').val();
 	 var searchOptions = {
         map: map,
         panel: 'result',
-        keywords: keywords,
-        pageSize: 5,
+        filter: filter,
+        pageSize: 10,
         orderBy: '_id:ASC'
     };
     //加载CloudDataSearch服务插件
