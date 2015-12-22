@@ -55,19 +55,20 @@
       <div class="modal-header">
         <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
       </div>
-	  <div style="width:300px;">
-      <div class="input-group">
-  <span class="input-group-addon" id="basic-addon1">地址：</span>
-  <input type="text" id="keywords" name="keyworks" class="form-control" placeholder="地址" aria-describedby="basic-addon1">
-  </div>
+	  <div style="width:300px;padding-top:5px;padding-left:5px;">
+      
   <div class="input-group">
-   <span class="input-group-addon" id="basic-addon2">数据库：</span>
+   <span class="input-group-addon" id="basic-addon2">数据：</span>
    <select id="dbid" name="dbid" class="form-control"  aria-describedby="basic-addon2" >
 	<option value="5678fde0305a2a626c8f3a46">第一批计量箱</option>
 	<option value="5678fd25305a2a626c8f2e62">第二批计量箱</option>
 	<option value="5678e8e5305a2a626c8decab">第三批计量箱</option>
    </select>
    </div>
+   <div class="input-group">
+  <span class="input-group-addon" id="basic-addon1">地址：</span>
+  <input type="text" id="keywords" name="keyworks" class="form-control" placeholder="地址" aria-describedby="basic-addon1">
+  </div>
 <div>
  <div class="modal-footer">
         <button type="button" class="btn btn-default" data-dismiss="modal">关闭</button>
@@ -155,7 +156,7 @@
         map: map,
         panel: 'result',
         filter: filter,
-        pageSize: 10,
+        pageSize: 5,
         orderBy: '_id:ASC'
     };
     //加载CloudDataSearch服务插件
