@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="initial-scale=1.0, user-scalable=no, width=device-width">
-    <title>高德云地图展示</title>
+    <title>高德地图展示</title>
     <link rel="stylesheet" href="http://cache.amap.com/lbs/static/main1119.css"/>
 	<style type="text/css">
         #panel {
@@ -16,28 +16,65 @@
             right: 10px;
             width: 200px;
         }
-        .amap-marker .marker-route {
+         #result {
+            z-index: 999;
             position: absolute;
-            width: 40px;
-            height: 44px;
-            color: #e90000;
-            background: url(http://webapi.amap.com/theme/v1.3/images/newpc/poi-1.png) no-repeat;
-            cursor: pointer;
-        }
-        .amap-marker .marker-marker-bus-from {
-            background-position: -334px -180px;
+            background-color: white;
+            max-height: 100%;
+            overflow-y: auto;
+            right: 0;
+            width: 280px;
         }
     </style>
+	<!-- 新 Bootstrap 核心 CSS 文件 -->
+	<link rel="stylesheet" href="http://cdn.bootcss.com/bootstrap/3.3.5/css/bootstrap.min.css">
+<!-- jQuery文件。务必在bootstrap.min.js 之前引入 -->
+	<script src="http://cdn.bootcss.com/jquery/1.11.3/jquery.min.js"></script>
+<!-- 最新的 Bootstrap 核心 JavaScript 文件 -->
+	<script src="http://cdn.bootcss.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
     <script src="http://webapi.amap.com/maps?v=1.3&key=68675225b31abcf62ce114fb892f4d29&plugin=AMap.MouseTool"></script>
     <script type="text/javascript" src="http://cache.amap.com/lbs/static/addToolbar.js"></script>
+	
 </head>
 <body>
 <div id="container"></div>
 <div id="panel"></div>
+  <div id="result"></div>
 <div class="button-group">
 	<input type="button" class="button" id="satelliteBtn" value="显示/隐藏影像图"/>
+	<input type="button" class="button" id="yunLayerBtn" value="打开/关闭云图"/>
     <input type="button" class="button" value="距离量测" onClick="javascript:startRuler2()"/>
+	<input type="button" class="button" value="搜索" data-toggle="modal" data-target="#searchModal"/>
 </div>
+<!-- Modal -->
+<div class="modal fade" id="searchModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content" style="width:320px;">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+      </div>
+	  <div style="width:300px;">
+      <div class="input-group">
+  <span class="input-group-addon" id="basic-addon1">关键字：</span>
+  <input type="text" id="keywords" name="keyworks" class="form-control" placeholder="关键字" aria-describedby="basic-addon1">
+  </div>
+  <div class="input-group">
+   <span class="input-group-addon" id="basic-addon2">数据库：</span>
+   <select id="dbid" name="dbid" class="form-control"  aria-describedby="basic-addon2" >
+	<option value="5678fde0305a2a626c8f3a46">第一批计量箱</option>
+	<option value="5678fd25305a2a626c8f2e62">第二批计量箱</option>
+	<option value="5678e8e5305a2a626c8decab">第三批计量箱</option>
+   </select>
+   </div>
+<div>
+ <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">关闭</button>
+        <button type="button" class="btn btn-primary" onclick="searchLayer()">查询</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 
 <script>
     var map = new AMap.Map("container",{center:new AMap.LngLat(124.131278,47.357151),level:16}); 
@@ -45,7 +82,6 @@
    map.plugin('AMap.CloudDataLayer',function(){ 
    //实例化一个云图层对象，设置数据表id 
     var layerOptions = {  
-      query:{address: '东莞'},  
       clickable:true 
     }; 
     var cloudDataLayer = new AMap.CloudDataLayer('5678fde0305a2a626c8f3a46', layerOptions);
@@ -66,6 +102,7 @@
             });
 	
 	 var isVisible = false;
+	 var isYVisible = true;
     var satellite = new AMap.TileLayer.Satellite();
 	 satellite.hide();
     satellite.setMap(map);
@@ -76,6 +113,18 @@
         } else {
             satellite.show();
             isVisible = true;
+        }
+    }, false);
+	
+	AMap.event.addDomListener(document.getElementById('yunLayerBtn'), 'click', function() {
+        if (isYVisible) {
+            map.remove(cloudArray);
+            isYVisible = false;
+        } else {
+			 cloudDataLayer.show();
+			cloudDataLayer2.show();
+			cloudDataLayer3.show();
+            isYVisible = true;
         }
     }, false);
 	
@@ -94,8 +143,25 @@
 		offset: new AMap.Pixel(0, -25)
 	});
 	infoWindow.open(map, clouddata._location);
-		
    }
+  
+  function searchLayer(){
+	var keywords = $('#keywords').val();
+	var dbid = $('#dbid').children('option:selected').val();
+	 var searchOptions = {
+        map: map,
+        panel: 'result',
+        keywords: keywords,
+        pageSize: 5,
+        orderBy: '_id:ASC'
+    };
+    //加载CloudDataSearch服务插件
+    AMap.service(["AMap.CloudDataSearch"], function() {
+        search = new AMap.CloudDataSearch(dbid, searchOptions); //构造云数据检索类
+        search.searchByDistrict('全国');
+		$('#searchModal').modal('hide');
+    });
+  }
    
     map.plugin(["AMap.RangingTool"], function() {
         ruler1 = new AMap.RangingTool(map);
