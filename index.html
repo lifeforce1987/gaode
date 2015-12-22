@@ -45,8 +45,8 @@
 	<!--
 	<input type="button" class="button" id="yunLayerBtn" value="打开/关闭云图"/>
 	-->
-    <input type="button" class="button" value="距离量测" onClick="javascript:startRuler2()"/>
-	<input type="button" class="button" value="搜  索" data-toggle="modal" data-target="#searchModal"/>
+    <input type="button" class="button" value="距离量测" onClick="javascript:startRuler1()"/>
+	<input type="button" class="button" value="搜    索" data-toggle="modal" data-target="#searchModal"/>
 </div>
 <!-- Modal -->
 <div class="modal fade" id="searchModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
@@ -77,7 +77,12 @@
     </div>
   </div>
 </div>
-
+<div class="modal fade bs-example-modal-sm" id="errorModal" tabindex="-1" role="dialog" aria-labelledby="mySmallModalLabel">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content" id="errorTip">
+    </div>
+  </div>
+</div>
 
 <script>
     var map = new AMap.Map("container",{center:new AMap.LngLat(124.131278,47.357151),level:16}); 
@@ -105,7 +110,6 @@
             });
 	
 	 var isVisible = false;
-	 var isYVisible = true;
     var satellite = new AMap.TileLayer.Satellite();
 	 satellite.hide();
     satellite.setMap(map);
@@ -119,19 +123,31 @@
         }
     }, false);
 	
-	AMap.event.addDomListener(document.getElementById('yunLayerBtn'), 'click', function() {
-        if (isYVisible) {
-            map.remove(cloudArray);
-            isYVisible = false;
-        } else {
-			 cloudDataLayer.show();
-			cloudDataLayer2.show();
-			cloudDataLayer3.show();
-            isYVisible = true;
-        }
-    }, false);
-	
    }); 
+   var geolocation;
+   map.plugin('AMap.Geolocation', function() {
+        geolocation = new AMap.Geolocation({
+            enableHighAccuracy: true,//是否使用高精度定位，默认:true
+            timeout: 10000,          //超过10秒后停止定位，默认：无穷大
+            buttonOffset: new AMap.Pixel(10, 20),//定位按钮与设置的停靠位置的偏移量，默认：Pixel(10, 20)
+            zoomToAccuracy: true,      //定位成功后调整地图视野范围使定位位置及精度范围视野内可见，默认：false
+            buttonPosition:'LB'
+        });
+        map.addControl(geolocation);
+        //geolocation.getCurrentPosition();
+        AMap.event.addListener(geolocation, 'complete', onComplete);//返回定位信息
+        AMap.event.addListener(geolocation, 'error', onError);      //返回定位出错信息
+    });
+	
+	//解析定位错误信息
+    function onError(data) {
+        $('#errorTip').innerHTML = '定位失败';
+		$('#errorModal').modal('show');
+    }
+	
+	function onComplete(data) {
+        
+    }
    
    function showInfoWindow(result){
 	 var clouddata = result.data;
@@ -172,38 +188,12 @@
         AMap.event.addListener(ruler1, "end", function(e) {
             ruler1.turnOff();
         });
-        var sMarker = {
-            icon: new AMap.Icon({
-                size: new AMap.Size(19, 31),//图标大小
-                image: "http://webapi.amap.com/theme/v1.3/markers/n/mark_b1.png"
-            })
-        };
-        var eMarker = {
-            icon: new AMap.Icon({
-                size: new AMap.Size(19, 31),//图标大小
-                image: "http://webapi.amap.com/theme/v1.3/markers/n/mark_b2.png"
-            }),
-            offset: new AMap.Pixel(-9, -31)
-        };
-        var lOptions = {
-            strokeStyle: "solid",
-            strokeColor: "#FF33FF",
-            strokeOpacity: 1,
-            strokeWeight: 2
-        };
-        var rulerOptions = {startMarkerOptions: sMarker, endMarkerOptions: eMarker, lineOptions: lOptions};
-        ruler2 = new AMap.RangingTool(map, rulerOptions);
     });
     //启用默认样式测距
     function startRuler1() {
-        ruler2.turnOff();
         ruler1.turnOn();
     }
-    //启用自定义样式测距
-    function startRuler2() {
-        ruler1.turnOff();
-        ruler2.turnOn();
-    }
+
 </script>
 </body>
 </html>
