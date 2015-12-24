@@ -13,35 +13,43 @@
             max-height: 90%;
             overflow-y: auto;
             top: 10px;
-            right: 10px;
+            left: 50px;
             width: 200px;
         }
-         #result {
-            z-index: 999;
+         #toc {
+            z-index: o;
             position: absolute;
-            background-color: white;
+            background-color: rgba(255,255,255, 0.6);
+			olor:#F00;
             max-height: 100%;
             overflow-y: auto;
             right: 0;
-            width: 280px;
+            width: 180px;
         }
     </style>
 	<!-- 新 Bootstrap 核心 CSS 文件 -->
 	<link rel="stylesheet" href="http://cdn.bootcss.com/bootstrap/3.3.5/css/bootstrap.min.css">
+	<link rel="stylesheet" href="css/zTreeStyle/metro.css">
 <!-- jQuery文件。务必在bootstrap.min.js 之前引入 -->
 	<script src="http://cdn.bootcss.com/jquery/1.11.3/jquery.min.js"></script>
 <!-- 最新的 Bootstrap 核心 JavaScript 文件 -->
 	<script src="http://cdn.bootcss.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+	<script src="http://res.layui.com/lay/lib/layer/layer.js"></script>
+	<script src="http://res.layui.com/lay/lib/laycode/laycode.min.js"></script>
     <script src="http://webapi.amap.com/maps?v=1.3&key=68675225b31abcf62ce114fb892f4d29&plugin=AMap.MouseTool"></script>
     <script type="text/javascript" src="http://cache.amap.com/lbs/static/addToolbar.js"></script>
-	
+    <script src="js/jquery.ztree.all-3.5.min.js"></script>
+	<script src="./CloudDataSearchRender.js"></script>
 </head>
 <body>
+
 <div id="container"></div>
 <div id="panel"></div>
-  <div id="result"></div>
+  <div id="toc">
+	 <ul id="tree" class="ztree"></ul>
+  </div>
+ <div id="cloudLayerdataDiv"></div>
 <div class="button-group">
-	<input type="button" class="button" id="satelliteBtn" value="显示/隐藏影像图"/>
 	<!--
 	<input type="button" class="button" id="yunLayerBtn" value="打开/关闭云图"/>
 	-->
@@ -85,59 +93,104 @@
 </div>
 
 <script>
-    var map = new AMap.Map("container",{center:new AMap.LngLat(124.131278,47.357151),level:16}); 
-	//加载云数据图层插件 
-   map.plugin('AMap.CloudDataLayer',function(){ 
-   //实例化一个云图层对象，设置数据表id 
-    var layerOptions = {  
-      clickable:true 
-    }; 
-    var cloudDataLayer = new AMap.CloudDataLayer('5678fde0305a2a626c8f3a46', layerOptions);
-	var cloudDataLayer2 = new AMap.CloudDataLayer('5678fd25305a2a626c8f2e62', layerOptions);
-	var cloudDataLayer3 = new AMap.CloudDataLayer('5678e8e5305a2a626c8decab', layerOptions);
-     //实例化云图层类 
-    cloudDataLayer.setMap(map); //叠加云图层到地图 
-	cloudDataLayer2.setMap(map); //叠加云图层到地图 
-	cloudDataLayer3.setMap(map); //叠加云图层到地图 
-	 AMap.event.addListener(cloudDataLayer, 'click', function(result) {
-               showInfoWindow(result);
-            });
-	AMap.event.addListener(cloudDataLayer3, 'click', function(result) {
-               showInfoWindow(result);
-            });
-	AMap.event.addListener(cloudDataLayer2, 'click', function(result) {
-               showInfoWindow(result);
-            });
-	
-	 var isVisible = false;
-    var satellite = new AMap.TileLayer.Satellite();
-	 satellite.hide();
-    satellite.setMap(map);
-	 AMap.event.addDomListener(document.getElementById('satelliteBtn'), 'click', function() {
-        if (isVisible) {
-            satellite.hide();
-            isVisible = false;
-        } else {
-            satellite.show();
-            isVisible = true;
-        }
-    }, false);
-	
-   }); 
-   var geolocation;
-   map.plugin('AMap.Geolocation', function() {
-        geolocation = new AMap.Geolocation({
-            enableHighAccuracy: true,//是否使用高精度定位，默认:true
-            timeout: 10000,          //超过10秒后停止定位，默认：无穷大
-            buttonOffset: new AMap.Pixel(10, 20),//定位按钮与设置的停靠位置的偏移量，默认：Pixel(10, 20)
-            zoomToAccuracy: true,      //定位成功后调整地图视野范围使定位位置及精度范围视野内可见，默认：false
-            buttonPosition:'LB'
-        });
-        map.addControl(geolocation);
-        //geolocation.getCurrentPosition();
-        AMap.event.addListener(geolocation, 'complete', onComplete);//返回定位信息
-        AMap.event.addListener(geolocation, 'error', onError);      //返回定位出错信息
+	var zTree;
+	var map = new AMap.Map("container",{center:new AMap.LngLat(124.131278,47.357151),level:16}); 
+	var satellite = new AMap.TileLayer.Satellite();
+	var resultInfoIndex = null;
+	var me = null;
+    var setting = {
+        check: {
+            enable: true
+        },
+        data: {
+            simpleData: {
+                enable:true,
+                idKey: "id",
+                pIdKey: "pId",
+                rootPId: ""
+            }
+        },
+		callback: {
+			onCheck: tocOnCheck
+		}
+    };
+    var zNodes =[
+        {id:2, pId:0, name:"云图", open:false},
+        {id:'5678fde0305a2a626c8f3a46', pId:2, name:"第一批计量箱", file:"excheck/checkbox"},
+        {id:'5678fd25305a2a626c8f2e62', pId:2, name:"第二批计量箱", file:"excheck/checkbox_nocheck"},
+        {id:'5678e8e5305a2a626c8decab', pId:2, name:"第三批计量箱", file:"excheck/checkbox_chkDisabled"},
+		{id:1, pId:0, name:"影像图", open:false}
+    ];
+
+    $(document).ready(function(){
+        var t = $("#tree");
+        t = $.fn.zTree.init(t, setting, zNodes);
+		satellite.setMap(map);
+		satellite.hide();
+		
+		var geolocation;
+		map.plugin('AMap.Geolocation', function() {
+			geolocation = new AMap.Geolocation({
+				enableHighAccuracy: true,//是否使用高精度定位，默认:true
+				timeout: 10000,          //超过10秒后停止定位，默认：无穷大
+				buttonOffset: new AMap.Pixel(10, 20),//定位按钮与设置的停靠位置的偏移量，默认：Pixel(10, 20)
+				zoomToAccuracy: true,      //定位成功后调整地图视野范围使定位位置及精度范围视野内可见，默认：false
+				buttonPosition:'LB'
+			});
+			map.addControl(geolocation);
+			//geolocation.getCurrentPosition();
+			AMap.event.addListener(geolocation, 'complete', onComplete);//返回定位信息
+			AMap.event.addListener(geolocation, 'error', onError);      //返回定位出错信息
+		});
     });
+	
+	function tocOnCheck(event, treeId, treeNode){
+		if(treeNode.id==1){//影像图加载
+			if(treeNode.checked){
+				satellite.show();
+			}else{
+				satellite.hide();
+			}
+		}else{
+			if(treeNode.isParent){
+				$.each(treeNode.children,function(i,node){
+					isShowLayer(treeNode.checked,node.id)
+				});
+			}else{
+				isShowLayer(treeNode.checked,treeNode.id);
+			}
+		}
+	}
+    
+    function isShowLayer(flag,id){
+    	if(flag){
+				if($('#cloudLayerdataDiv').data(id)){
+					$('#cloudLayerdataDiv').data(id).setMap(map);
+				}else{
+				//加载云数据图层插件 
+			   		map.plugin('AMap.CloudDataLayer',function(){ 
+			   //实例化一个云图层对象，设置数据表id 
+					var layerOptions = {  
+					  clickable:true 
+					}; 
+					var cloudDataLayer = new AMap.CloudDataLayer(id, layerOptions);
+					$('#cloudLayerdataDiv').data(id,cloudDataLayer);
+					 //实例化云图层类 
+					cloudDataLayer.setMap(map); //叠加云图层到地图 
+					 AMap.event.addListener(cloudDataLayer, 'click', function(result) {
+							   showInfoWindow(result);
+							});
+				   }); 
+				}
+			}else{
+				if($('#cloudLayerdataDiv').data(id)){
+					$('#cloudLayerdataDiv').data(id).setMap(null);
+				}
+			}
+	}
+
+	
+   
 	
 	//解析定位错误信息
     function onError(data) {
@@ -170,7 +223,6 @@
 	var dbid = $('#dbid').children('option:selected').val();
 	 var searchOptions = {
         map: map,
-        panel: 'panel',
         filter: filter,
         pageSize: 5,
         orderBy: '_id:ASC'
@@ -178,8 +230,7 @@
     //加载CloudDataSearch服务插件
     AMap.service(["AMap.CloudDataSearch"], function() {
         search = new AMap.CloudDataSearch(dbid, searchOptions); //构造云数据检索类
-        search.searchByDistrict('全国');
-		$('#searchModal').modal('hide');
+        search.searchByDistrict('全国',showresult);
     });
   }
    
@@ -193,6 +244,102 @@
     function startRuler1() {
         ruler1.turnOn();
     }
+	
+	function showresult(status,result){
+		if(me==null){
+			me = new Lib.AMap.CloudDataSearchRender();
+		}
+		me.autoRender({
+					cloudDataSearchInstance: search,
+					methodName: "searchByDistrict",
+					methodArgumments: ['全国',showresult],
+					data: result,
+					map: map
+				});
+		
+		if (result.info == "OK" && result.datas && result.datas.length > 0) {
+				$('#searchModal').modal('hide');
+				
+			} else {
+				layer.msg('抱歉，未搜索到有效的结果。');
+			}
+			var pois = result.datas;
+			var c = [];
+			c.push("<div class=\"amap_lib_cloudDataSearch\">");
+			c.push("    <div class=\"amap_lib_cloudDataSearch_list\">");
+			c.push("        <ul>");
+			for (var i = 0, poi; i < pois.length; i++) {
+				poi = pois[i];
+				c.push("            <li class=\"poibox\">");
+				c.push("                <div class=\"amap_lib_cloudDataSearch_poi poibox-icon\">" + (i + 1) + "</div>");
+				c.push("                <h3 class=\"poi-title\">");
+				c.push("                	<span class=\"poi-name\">" + poi._name + "</span>");
+				c.push("                </h3>");
+				c.push("                <div class=\"poi-info\">");
+				c.push("                	<p class=\"poi-addr\">地址：" + poi._address + "</p>");
+				c.push("                </div>");
+				c.push("            </li>");
+			}
+			c.push("        </ul>");
+			c.push("    </div>");
+			c.push("    <div class=\"amap_lib_cloudDataSearch_page\">");
+			c.push("        <div>");
+			c.push("            <p>");
+			var poiList = result.poiList,
+				count = result.count, //493
+			/*	pageIndex = me.options.pageIndex ? me.options.pageIndex : 1,
+				pageSize = me.options.pageSize ? me.options.pageSize : 500,*/
+			/*
+				api中没有公开获取pageIndex,pageSize的方法，在此从临时属性j中获取，api每次升级时这个属性名都会变化
+				 */
+				pageIndex = me.options.cloudDataSearchInstance.j.pageIndex ? me.options.cloudDataSearchInstance.j.pageIndex : 1,
+				pageSize = me.options.cloudDataSearchInstance.j.pageSize ? me.options.cloudDataSearchInstance.j.pageSize : 500,
+				pageCount = Math.ceil(count / pageSize);
+			if (pageIndex > 3) {
+				c.push(me.view.createPageButton(1, "首页"));
+			}
+			if (pageIndex > 1) {
+				c.push(me.view.createPageButton(pageIndex - 1, "上一页"));
+			}
+			if (pageIndex - 2 >= 1) {
+				c.push(me.view.createPageButton(pageIndex - 2, pageIndex - 2));
+			}
+			if (pageIndex - 1 >= 1) {
+				c.push(me.view.createPageButton(pageIndex - 1, pageIndex - 1));
+			}
+			c.push("                <span>" + pageIndex + "</span>");
+			if (pageIndex + 1 <= pageCount) {
+				c.push(me.view.createPageButton(pageIndex + 1, pageIndex + 1));
+			}
+			if (pageIndex + 2 <= pageCount) {
+				c.push(me.view.createPageButton(pageIndex + 2, pageIndex + 2));
+			}
+			if (pageIndex < pageCount) {
+				c.push(me.view.createPageButton(pageIndex + 1, "下一页"));
+			}
+			c.push("            </p>");
+			c.push("        </div>");
+			c.push("    </div>");
+			c.push("</div>");
+			showLayer(c.join(""));
+			me.enableListeners();
+}
+function showLayer(h){
+	if(resultInfoIndex==null){
+		resultInfoIndex = layer.open({
+			type: 1 ,
+			title: '搜索结果',
+			shade: 0,
+			content: "<div id='resultDiv'>" + h + "</div>",
+			end : function(){
+				resultInfoIndex = null;
+			}
+			
+		});
+	}else{
+		$('#resultDiv').html(h);
+	}
+}
 
 </script>
 </body>
