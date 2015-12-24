@@ -111,7 +111,8 @@
             }
         },
 		callback: {
-			onCheck: tocOnCheck
+			onCheck: tocOnCheck,
+			onClick : tocOnClick
 		}
     };
     var zNodes =[
@@ -143,6 +144,11 @@
 			AMap.event.addListener(geolocation, 'error', onError);      //返回定位出错信息
 		});
     });
+	
+	function tocOnClick(event, treeId, treeNode){
+		var treeObj = $.fn.zTree.getZTreeObj("tree");
+		treeObj.checkNode(treeNode, !treeNode.checked, true,true);		
+	}
 	
 	function tocOnCheck(event, treeId, treeNode){
 		if(treeNode.id==1){//影像图加载
